@@ -2,7 +2,7 @@
 
 ```jsx
 function MainMenuComponent() {
-    const [activeTab, setActiveTab] = dv.React.useState('tab1');
+    const [activeTab, setActiveTab] = useState('tab1');
     
     const tabs = [
         { id: 'tab1', label: 'Dashboard', component: 'tab1.viewer.md' },
@@ -13,42 +13,42 @@ function MainMenuComponent() {
     const TabContent = ({ tabId }) => {
         switch(tabId) {
             case 'tab1':
-                return dv.React.createElement('div', { 
+                return createElement('div', { 
                     dangerouslySetInnerHTML: { 
                         __html: '<div class="tab-content"><h3>Dashboard Overview</h3><div class="content-section"><p>Welcome to your personal dashboard! This is the main overview tab.</p><div class="placeholder-widget"><h4>Recent Activity</h4><p>Your latest notes and modifications will appear here.</p></div></div></div>' 
                     } 
                 });
             case 'tab2':
-                return dv.React.createElement('div', { 
+                return createElement('div', { 
                     dangerouslySetInnerHTML: { 
                         __html: '<div class="tab-content"><h3>Notes & Queries</h3><div class="content-section"><p>This tab contains your note management and query tools.</p><div class="placeholder-widget"><h4>Quick Search</h4><p>Advanced search functionality will be implemented here.</p></div></div></div>' 
                     } 
                 });
             case 'tab3':
-                return dv.React.createElement('div', { 
+                return createElement('div', { 
                     dangerouslySetInnerHTML: { 
                         __html: '<div class="tab-content"><h3>Analytics & Insights</h3><div class="content-section"><p>Analyze your knowledge base with powerful insights.</p><div class="placeholder-widget"><h4>Writing Stats</h4><p>Track your daily writing progress and habits.</p></div></div></div>' 
                     } 
                 });
             default:
-                return dv.React.createElement('div', {}, 'Tab not found');
+                return createElement('div', {}, 'Tab not found');
         }
     };
     
-    return dv.React.createElement('div', { className: 'main-menu-container' },
-        dv.React.createElement('div', { className: 'tab-navigation' },
+    return createElement('div', { className: 'main-menu-container' },
+        createElement('div', { className: 'tab-navigation' },
             tabs.map(tab => 
-                dv.React.createElement('button', {
+                createElement('button', {
                     key: tab.id,
                     className: `tab-button ${activeTab === tab.id ? 'active' : ''}`,
                     onClick: () => setActiveTab(tab.id)
                 }, tab.label)
             )
         ),
-        dv.React.createElement('div', { className: 'tab-content-container' },
-            dv.React.createElement(TabContent, { tabId: activeTab })
+        createElement('div', { className: 'tab-content-container' },
+            createElement(TabContent, { tabId: activeTab })
         ),
-        dv.React.createElement('style', {}, `
+        createElement('style', {}, `
             .main-menu-container {
                 width: 100%;
                 max-width: 800px;
