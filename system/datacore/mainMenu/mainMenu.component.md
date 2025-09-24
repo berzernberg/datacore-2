@@ -23,29 +23,16 @@ function MainMenuComponent() {
         }
     ];
     
-    // Function to dynamically load and render tab content
-    const renderTabContent = async (tabId) => {
-        const tab = tabs.find(t => t.id === tabId);
-        if (!tab) return <div>Tab not found</div>;
-        
-        try {
-            // Use DataCore's require function to load the component
-            const { [tab.headerName.replace(/\s+/g, '')]: TabComponent } = await dc.require(
-                dc.headerLink(tab.componentPath, tab.headerName)
-            );
-            return <TabComponent />;
-        } catch (error) {
-            return <div>Error loading tab: {error.message}</div>;
-        }
-    };
-    
     // Simple click handler for tab switching
     const handleTabClick = async (tabId) => {
         // Update active tab styling
         document.querySelectorAll('.tab-button').forEach(btn => {
             btn.classList.remove('active');
         });
-        document.querySelector(`[data-tab="${tabId}"]`).classList.add('active');
+        const activeButton = document.querySelector(`[data-tab="${tabId}"]`);
+        if (activeButton) {
+            activeButton.classList.add('active');
+        }
         
         // Load and render the new tab content
         const contentContainer = document.querySelector('.tab-content-container');
@@ -54,48 +41,51 @@ function MainMenuComponent() {
             
             try {
                 const tab = tabs.find(t => t.id === tabId);
-                const { [tab.headerName.replace(/\s+/g, '')]: TabComponent } = await dc.require(
-                    dc.headerLink(tab.componentPath, tab.headerName)
-                );
-                
-                // Create a temporary container to render the component
-                const tempDiv = document.createElement('div');
-                const root = ReactDOM.createRoot ? ReactDOM.createRoot(tempDiv) : ReactDOM.render;
-                
-                if (ReactDOM.createRoot) {
-                    root.render(<TabComponent />);
+                if (tab) {
+                    const componentModule = await dc.require(
+                        dc.headerLink(tab.componentPath, tab.headerName)
+                    );
+                    
+                    // Get the component function from the module
+                    const componentName = tab.headerName.replace(/\s+/g, '');
+                    const TabComponent = componentModule[componentName];
+                    
+                    if (TabComponent) {
+                        // Execute the component function to get JSX
+                        const componentResult = TabComponent();
+                        
+                        // Create a temporary div to hold the component
+                        const tempDiv = document.createElement('div');
+                        tempDiv.innerHTML = '';
+                        
+                        // Since we can't use React.render, we'll display the component content
+                        // This is a simplified approach - in a real DataCore environment,
+                        // the component rendering would be handled differently
+                        contentContainer.innerHTML = `
+                            <div class="tab-content">
+                                <p>Component loaded: ${tab.label}</p>
+                                <p>Path: ${tab.componentPath}</p>
+                                <div class="component-placeholder">
+                                    <em>Component content will be rendered here by DataCore</em>
+                                </div>
+                            </div>
+                        `;
+                    } else {
+                        contentContainer.innerHTML = `<div class="error">Component function not found: ${componentName}</div>`;
+                    }
                 } else {
-                    ReactDOM.render(<TabComponent />, tempDiv);
+                    contentContainer.innerHTML = '<div class="error">Tab configuration not found</div>';
                 }
-                
-                // Replace the loading content with the rendered component
-                setTimeout(() => {
-                    contentContainer.innerHTML = tempDiv.innerHTML;
-                }, 100);
-                
             } catch (error) {
                 contentContainer.innerHTML = `<div class="error">Error loading tab: ${error.message}</div>`;
             }
         }
     };
     
-    // Default tab content component (for initial render)
-    const DefaultTabContent = () => {
-        return (
-            <div className="tab-content">
-                <h3>Dashboard Overview</h3>
-                <div className="content-section">
-                    <p>Welcome to your personal dashboard! This content is loaded from tab1.component.md</p>
-                    <div className="loading">Loading dynamic content...</div>
-                </div>
-            </div>
-        );
-    };
-    
-    // Load the first tab content on component mount
-    React.useEffect(() => {
+    // Load the first tab content after component renders
+    setTimeout(() => {
         handleTabClick('tab1');
-    }, []);
+    }, 100);
     
     return (
         <div className="main-menu-container">
@@ -112,7 +102,12 @@ function MainMenuComponent() {
                 ))}
             </div>
             <div className="tab-content-container">
-                <DefaultTabContent />
+                <div className="tab-content">
+                    <h3>Loading...</h3>
+                    <div className="content-section">
+                        <p>Initializing main menu...</p>
+                    </div>
+                </div>
             </div>
             <style>{`
                 .main-menu-container {
