@@ -1,7 +1,7 @@
 # Main Menu Component
 
 ```jsx
-function MainMenuComponent() {
+async function MainMenuComponent() {
     // Define available tabs
     const tabs = [
         { id: 'tab1', label: 'Dashboard' },
