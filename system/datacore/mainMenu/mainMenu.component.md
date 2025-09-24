@@ -2,102 +2,59 @@
 
 ```jsx
 function MainMenuComponent() {
-    // Auto-discover tabs from the tabs folder
-    const discoverTabs = () => {
-        const tabs = [];
-        
-        // Define only the tabs that actually exist
-        const existingTabs = [
-            { id: 'tab1', label: 'Dashboard', headerName: 'Tab 1 Component' },
-            { id: 'tab2', label: 'Notes & Queries', headerName: 'Tab 2 Component' },
-            { id: 'tab3', label: 'Analytics', headerName: 'Tab 3 Component' },
-            { id: 'tab4', label: 'Custom Tab 4', headerName: 'Tab 4 Component' }
-        ];
-        
-        // Verify each tab exists and add to tabs array
-        for (const tab of existingTabs) {
-            try {
-                const componentPath = `system/datacore/mainMenu/tabs/${tab.id}.component.md`;
-                tabs.push({
-                    id: tab.id,
-                    label: tab.label,
-                    componentPath: componentPath,
-                    headerName: tab.headerName
-                });
-            } catch (error) {
-                // If there's an error, skip this tab
-                continue;
-            }
-        }
-        
-        return tabs;
-    };
+    // Define available tabs
+    const tabs = [
+        { id: 'tab1', label: 'Dashboard' },
+        { id: 'tab2', label: 'Notes & Queries' },
+        { id: 'tab3', label: 'Analytics' },
+        { id: 'tab4', label: 'Custom Tab 4' }
+    ];
     
-    const tabs = discoverTabs();
-    
-    // Simple click handler for tab switching
-    const handleTabClick = async (tabId) => {
-        // Update active tab styling
-        document.querySelectorAll('.tab-button').forEach(btn => {
-            btn.classList.remove('active');
-        });
-        const activeButton = document.querySelector(`[data-tab="${tabId}"]`);
-        if (activeButton) {
-            activeButton.classList.add('active');
-        }
-        
-        // Load and render the new tab content
-        const contentContainer = document.querySelector('.tab-content-container');
-        if (contentContainer) {
-            contentContainer.innerHTML = '<div class="loading">Loading...</div>';
-            
-            try {
-                const tab = tabs.find(t => t.id === tabId);
-                if (tab) {
-                    const componentModule = await dc.require(
-                        dc.headerLink(tab.componentPath, tab.headerName)
-                    );
-                    
-                    // Get the component function from the module
-                    const componentName = tab.headerName.replace(/\s+/g, '');
-                    const TabComponent = componentModule[componentName];
-                    
-                    if (TabComponent) {
-                        // Execute the component function to get JSX
-                        const componentResult = TabComponent();
-                        
-                        // Create a temporary div to hold the component
-                        const tempDiv = document.createElement('div');
-                        tempDiv.innerHTML = '';
-                        
-                        // Since we can't use React.render, we'll display the component content
-                        // This is a simplified approach - in a real DataCore environment,
-                        // the component rendering would be handled differently
-                        contentContainer.innerHTML = `
-                            <div class="tab-content">
-                                <p>Component loaded: ${tab.label}</p>
-                                <p>Path: ${tab.componentPath}</p>
-                                <div class="component-placeholder">
-                                    <em>Component content will be rendered here by DataCore</em>
-                                </div>
-                            </div>
-                        `;
-                    } else {
-                        contentContainer.innerHTML = `<div class="error">Component function not found: ${componentName}</div>`;
-                    }
-                } else {
-                    contentContainer.innerHTML = '<div class="error">Tab configuration not found</div>';
-                }
-            } catch (error) {
-                contentContainer.innerHTML = `<div class="error">Error loading tab: ${error.message}</div>`;
-            }
+    // Load tab components directly using dc.require
+    const loadTabComponent = async (tabId) => {
+        try {
+            const componentPath = `system/datacore/mainMenu/tabs/${tabId}.component.md`;
+            const headerName = `Tab ${tabId.slice(-1)} Component`;
+            const componentModule = await dc.require(dc.headerLink(componentPath, headerName));
+            const componentName = headerName.replace(/\s+/g, '');
+            return componentModule[componentName];
+        } catch (error) {
+            console.error(`Error loading ${tabId}:`, error);
+            return null;
         }
     };
     
-    // Load the first tab content after component renders
-    setTimeout(() => {
-        handleTabClick('tab1');
-    }, 100);
+    // Pre-load all tab components
+    const [Tab1Component, Tab2Component, Tab3Component, Tab4Component] = await Promise.all([
+        loadTabComponent('tab1'),
+        loadTabComponent('tab2'),
+        loadTabComponent('tab3'),
+        loadTabComponent('tab4')
+    ]);
+    
+    const tabComponents = {
+        tab1: Tab1Component,
+        tab2: Tab2Component,
+        tab3: Tab3Component,
+        tab4: Tab4Component
+    };
+    
+    // State for active tab
+    let activeTab = 'tab1';
+    
+    // Get current tab content
+    const getCurrentTabContent = () => {
+        const TabComponent = tabComponents[activeTab];
+        if (TabComponent) {
+            return TabComponent();
+        }
+        return (
+            <div className="error">
+                <h3>Tab Not Found</h3>
+                <p>Could not load content for {activeTab}</p>
+            </div>
+        );
+    };
     
     return (
         <div className="main-menu-container">
@@ -105,21 +62,44 @@ function MainMenuComponent() {
                 {tabs.map(tab => (
                     <button
                         key={tab.id}
-                        className={`tab-button ${tab.id === 'tab1' ? 'active' : ''}`}
+                        className={`tab-button ${tab.id === activeTab ? 'active' : ''}`}
                         data-tab={tab.id}
-                        onClick={() => handleTabClick(tab.id)}
+                        onClick={() => {
+                            activeTab = tab.id;
+                            // Force re-render by updating the content
+                            const container = document.querySelector('.tab-content-container');
+                            if (container && tabComponents[activeTab]) {
+                                // Update active button styling
+                                document.querySelectorAll('.tab-button').forEach(btn => {
+                                    btn.classList.remove('active');
+                                });
+                                document.querySelector(`[data-tab="${activeTab}"]`).classList.add('active');
+                                
+                                // This is a simplified approach - in DataCore, you'd typically
+                                // trigger a re-render of the component instead
+                                container.innerHTML = `
+                                    <div class="tab-content">
+                                        <p><strong>Active Tab:</strong> ${tab.label}</p>
+                                        <p><em>Tab component loaded successfully!</em></p>
+                                        <div class="component-info">
+                                            <h4>Component Details:</h4>
+                                            <ul>
+                                                <li>Tab ID: ${activeTab}</li>
+                                                <li>Component: ${tabComponents[activeTab] ? 'Loaded' : 'Not Found'}</li>
+                                                <li>Path: system/datacore/mainMenu/tabs/${activeTab}.component.md</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                `;
+                            }
+                        }}
                     >
                         {tab.label}
                     </button>
                 ))}
             </div>
             <div className="tab-content-container">
-                <div className="tab-content">
-                    <h3>Loading...</h3>
-                    <div className="content-section">
-                        <p>Initializing main menu...</p>
-                    </div>
-                </div>
+                {getCurrentTabContent()}
             </div>
             <style>{`
                 .main-menu-container {
@@ -221,6 +201,30 @@ function MainMenuComponent() {
                     margin: 16px 0;
                     border-left: 4px solid #dc3545;
                     color: #721c24;
+                }
+                
+                .component-info {
+                    background: #f8f9fa;
+                    border: 1px solid #e9ecef;
+                    border-radius: 6px;
+                    padding: 16px;
+                    margin: 16px 0;
+                    border-left: 4px solid #28a745;
+                }
+                
+                .component-info h4 {
+                    margin: 0 0 8px 0;
+                    color: #495057;
+                }
+                
+                .component-info ul {
+                    margin: 0;
+                    padding-left: 20px;
+                }
+                
+                .component-info li {
+                    margin: 4px 0;
+                    color: #6c757d;
                 }
             `}</style>
         </div>
