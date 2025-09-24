@@ -2,26 +2,50 @@
 
 ```jsx
 function MainMenuComponent() {
-    const tabs = [
-        { 
-            id: 'tab1', 
-            label: 'Dashboard',
-            componentPath: 'system/datacore/mainMenu/tab1.component.md',
-            headerName: 'Tab 1 Component'
-        },
-        { 
-            id: 'tab2', 
-            label: 'Notes & Queries',
-            componentPath: 'system/datacore/mainMenu/tab2.component.md',
-            headerName: 'Tab 2 Component'
-        },
-        { 
-            id: 'tab3', 
-            label: 'Analytics',
-            componentPath: 'system/datacore/mainMenu/tab3.component.md',
-            headerName: 'Tab 3 Component'
+    // Auto-discover tabs from the tabs folder
+    const discoverTabs = () => {
+        const tabs = [];
+        const tabsFolder = 'system/datacore/mainMenu/tabs';
+        
+        // Try to discover tab files by checking for common tab patterns
+        // Since we can't directly read directory contents, we'll try common tab names
+        const possibleTabs = [
+            { id: 'tab1', label: 'Dashboard', headerName: 'Tab 1 Component' },
+            { id: 'tab2', label: 'Notes & Queries', headerName: 'Tab 2 Component' },
+            { id: 'tab3', label: 'Analytics', headerName: 'Tab 3 Component' },
+            { id: 'tab4', label: 'Tab 4', headerName: 'Tab 4 Component' },
+            { id: 'tab5', label: 'Tab 5', headerName: 'Tab 5 Component' },
+            { id: 'tab6', label: 'Tab 6', headerName: 'Tab 6 Component' },
+            { id: 'tab7', label: 'Tab 7', headerName: 'Tab 7 Component' },
+            { id: 'tab8', label: 'Tab 8', headerName: 'Tab 8 Component' },
+            { id: 'tab9', label: 'Tab 9', headerName: 'Tab 9 Component' },
+            { id: 'tab10', label: 'Tab 10', headerName: 'Tab 10 Component' }
+        ];
+        
+        // Test each possible tab to see if it exists
+        for (const tab of possibleTabs) {
+            try {
+                const componentPath = `${tabsFolder}/${tab.id}.component.md`;
+                // Try to require the component to see if it exists
+                const testModule = dc.require(dc.headerLink(componentPath, tab.headerName));
+                if (testModule) {
+                    tabs.push({
+                        id: tab.id,
+                        label: tab.label,
+                        componentPath: componentPath,
+                        headerName: tab.headerName
+                    });
+                }
+            } catch (error) {
+                // Tab doesn't exist, skip it
+                continue;
+            }
         }
-    ];
+        
+        return tabs;
+    };
+    
+    const tabs = discoverTabs();
     
     // Simple click handler for tab switching
     const handleTabClick = async (tabId) => {
